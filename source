@@ -1,0 +1,407 @@
+import time
+import os
+from openpyxl import Workbook
+import cv2
+import pytesseract as pt
+import os
+import numpy as np
+import time
+import sys
+import glob
+
+def clear():
+    if os.name == 'nt':
+        _ = os.system('cls')
+    else:
+        _ = os.system('clear')
+
+pt.pytesseract.tesseract_cmd = os.path.abspath('tesseract-OCR/tesseract.exe')
+
+def HTPX():
+    # with open(os.path.abspath('url.txt'), 'r') as f:
+    #     URL = [line.rstrip('\n') for line in f]
+    #     URL = URL[0]
+        
+    # if "?" in URL:
+    #     if "limit=" not in URL:
+    #         URL = URL + "&limit=250"
+    # else:
+    #     pass
+    
+    def xtract_text(img):
+        img = cv2.imread(img)
+        img = cv2.resize(img, None, fx=1.2, fy=1.2, interpolation=cv2.INTER_CUBIC)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        kernel = np.ones((1, 1), np.uint8)
+        img = cv2.dilate(img, kernel, iterations=1)
+        img = cv2.erode(img, kernel, iterations=1)
+        cv2.threshold(cv2.GaussianBlur(img, (5, 5), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        cv2.threshold(cv2.bilateralFilter(img, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        cv2.threshold(cv2.medianBlur(img, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        cv2.adaptiveThreshold(cv2.GaussianBlur(img, (5, 5), 0), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+        cv2.adaptiveThreshold(cv2.bilateralFilter(img, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+        cv2.adaptiveThreshold(cv2.medianBlur(img, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+        txt = pt.pytesseract.image_to_string(img, config='--psm 3')
+        return txt
+    
+    images = glob.glob(os.path.abspath('images/*.png'))
+    
+    DATA = []
+    DATA.append(["Date", "Lender", "Borrower", "Borrower’s mailing address", "Loan no", "Date", "Original amount", "Borrower", "Original lender", "Unpaid principal on note", 
+                 "Extended maturity date", "Modified annual interest rate", "Modified payment terms", "Principal and interest shall be in monthly installments of",
+                 "Completion date", "Property address", "Extended maturity date of note", "Modified maturity date", "Obligor", "Obligors mailing address",
+                 "Holder of note and lien", "Holders mailing address"])
+    
+    for image in images:
+        texts = xtract_text(image)
+            
+        DATE1 = None
+        LENDER = None
+        BORROWER1 = None
+        BORROWER_ADDRESS = None
+        LOAN_NO = None
+        DATE2 = None
+        ORIGINAL_AMOUNT = None
+        BORROWER2 = None
+        ORIGINAL_LENDER = None
+        UNPAID_PRINCIPLE = None
+        EXTENDED_MATURITY = None
+        MODIFIED_ANNUAL = None
+        MODIFIED_PAYMENT = None
+        PRINCIPLE_INTEREST = None
+        COMPLETION_DATE = None
+        PROPERTY_ADDRESS = None
+        EXTENDED_MATURITY_NOTE = None
+        MODIFIED_MATURITY = None
+        OBLIGRATOR = None
+        OBLIGRATOR_ADDRESS = None
+        HOLDER_NOTE = None
+        HOLDER_ADDRESS = None
+        
+        
+        texts = texts.split('\n\n')
+        # for text in texts:
+        #     print(text + "\n______________________________________________________________\n")
+            
+        # input(">>>>>")
+        
+        for text in texts:
+            if "date:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'date:' in temp.lower():
+                            DATE1 = temp.split(':')[1].strip()
+                            break
+                else:
+                    DATE1 = text.split(':')[1].strip()
+                    break
+            if DATE1 is not None:
+                break
+            
+        for text in texts:
+            if "lender:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'lender:' in temp.lower():
+                            LENDER = temp.split(':')[1].strip()
+                            break
+                else:
+                    LENDER = text.split(':')[1].strip()
+                    break
+            if LENDER is not None:
+                break
+            
+        for text in texts:
+            if "borrower:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'borrower:' in temp.lower():
+                            BORROWER1 = temp.split(':')[1].strip()
+                            BORROWER2 = BORROWER1
+                            break
+                else:
+                    BORROWER1 = text.split(':')[1].strip()
+                    BORROWER2 = BORROWER1
+                    break
+            if BORROWER1 is not None:
+                break
+            
+        for text in texts:
+            if "borrower's mailing address:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if "borrower's mailing address:" in temp.lower():
+                            BORROWER_ADDRESS = temp.split(':')[1].strip()
+                            break
+                else:
+                    BORROWER_ADDRESS = text.split(':')[1].strip()
+                    break
+            if BORROWER_ADDRESS is not None:
+                break
+            
+        for text in texts:
+            if "loan no." in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if "loan no." in temp.lower():
+                            LOAN_NO = temp.split('.')[1].strip()
+                            break
+                else:
+                    LOAN_NO = text.split('.')[1].strip()
+                    break
+            if LOAN_NO is not None:
+                break
+            
+        for text in texts:
+            if "date:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'date:' in temp.lower():
+                            DATE2 = temp.split(':')[1].strip()
+                            break
+                else:
+                    DATE2 = text.split(':')[1].strip()
+                    break
+            if DATE2 is not None:
+                break
+            
+        for text in texts:
+            if "original amount:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'original amount:' in temp.lower():
+                            ORIGINAL_AMOUNT = temp.split(':')[1].replace('—', '').strip()
+                            if "$" not in ORIGINAL_AMOUNT:
+                                ORIGINAL_AMOUNT = temps[temps.index(temp) + 1].replace("(", "").replace(")", "").strip()
+                            break
+                else:
+                    ORIGINAL_AMOUNT = text.split(':')[1].replace('—', '').strip()
+                    if "$" not in ORIGINAL_AMOUNT:
+                        ORIGINAL_AMOUNT = texts[texts.index(text) + 1].replace("(", "").replace(")", "").strip()
+                    break
+            if ORIGINAL_AMOUNT is not None:
+                break
+            
+        for text in texts:
+            if "original lender:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'original lender:' in temp.lower():
+                            ORIGINAL_LENDER = temp.split(':')[1].strip()
+                            break
+                else:
+                    ORIGINAL_LENDER = text.split(':')[1].strip()
+                    break
+            if ORIGINAL_LENDER is not None:
+                break
+            
+        if ORIGINAL_LENDER == None:
+            ORIGINAL_LENDER = LENDER
+            
+        for text in texts:
+            if "unpaid principal on note:" in text.lower() or "unpaid principal and interest on note:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'unpaid principal on note:' in temp.lower() or "unpaid principal and interest on note:" in temp.lower():
+                            UNPAID_PRINCIPLE = temp.split(':')[1].replace('—', '').strip()
+                            if "$" not in UNPAID_PRINCIPLE:
+                                UNPAID_PRINCIPLE = temps[temps.index(temp) + 1].replace("(", "").replace(")", "").strip()
+                            break
+                else:
+                    UNPAID_PRINCIPLE = text.split(':')[1].replace('—', '').strip()
+                    if "$" not in UNPAID_PRINCIPLE:
+                        UNPAID_PRINCIPLE = texts[texts.index(text) + 1].replace("(", "").replace(")", "").strip()
+                    break
+            if UNPAID_PRINCIPLE is not None:
+                break
+            
+        for text in texts:
+            if "extended maturity date:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'extended maturity date:' in temp.lower():
+                            EXTENDED_MATURITY = temp.split(':')[1].strip()
+                            break
+                else:
+                    EXTENDED_MATURITY = text.split(':')[1].strip()
+                    break
+            if EXTENDED_MATURITY is not None:
+                break
+            
+            
+        for text in texts:
+            if "modified annual interest rate:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'modified annual interest rate:' in temp.lower():
+                            MODIFIED_ANNUAL = temp.split(':')[1].strip()
+                            break
+                else:
+                    MODIFIED_ANNUAL = text.split(':')[1].strip()
+                    break
+            if MODIFIED_ANNUAL is not None:
+                break
+            
+        
+        for text in texts:
+            if "modified payment terms:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'modified payment terms:' in temp.lower():
+                            MODIFIED_PAYMENT = temp.split(':')[1].strip()
+                            break
+                else:
+                    MODIFIED_PAYMENT = text.split(':')[1].strip()
+                    break
+            if MODIFIED_PAYMENT is not None:
+                break
+        
+        for text in texts:
+            if "principal and interest shall be in monthly installments of " in text.lower():
+                PRINCIPLE_INTEREST = text.lower().replace('principal and interest shall be in monthly installments of ', '').replace('\n', ' ')
+                break
+            
+            
+        for text in texts:
+            if "the “completion date” defined in the allonge to note is extended to " in text.lower():
+                COMPLETION_DATE = text.lower().replace('1. the “completion date” defined in the allonge to note is extended to ', '').split('.')[0].strip()
+                break
+            
+        for text in texts:
+            if "[Property Address]" in text:
+                PROPERTY_ADDRESS = text.replace('[Property Address]', '').strip()
+                break
+            
+            
+        for text in texts:
+            if "extended maturity date of note:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'extended maturity date of note:' in temp.lower():
+                            EXTENDED_MATURITY_NOTE = temp.split(':')[1].strip()
+                            break
+                else:
+                    EXTENDED_MATURITY_NOTE = text.split(':')[1].strip()
+                    break
+            if EXTENDED_MATURITY_NOTE is not None:
+                break
+            
+        for text in texts:
+            if "modified maturity date:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'modified maturity date:' in temp.lower():
+                            MODIFIED_MATURITY = temp.split(':')[1].strip()
+                            break
+                else:
+                    MODIFIED_MATURITY = text.split(':')[1].strip()
+                    break
+            if MODIFIED_MATURITY is not None:
+                break
+            
+        for text in texts:
+            if "obligor:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'obligor:' in temp.lower():
+                            OBLIGRATOR = temp.split(':')[1].strip()
+                            break
+                else:
+                    OBLIGRATOR = text.split(':')[1].strip()
+                    break
+            if OBLIGRATOR is not None:
+                break
+            
+        for text in texts:
+            if "obligor’s mailing address:" in text.lower() or "obligor's mailing address" in text.lower():
+                OBLIGRATOR_ADDRESS = text.split(':')[1].strip()
+                break
+            
+        for text in texts:
+            if "holder of note and lien:" in text.lower():
+                if '\n' in text:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if 'holder of note and lien:' in temp.lower():
+                            HOLDER_NOTE = temp.split(':')[1].strip()
+                            break
+                else:
+                    HOLDER_NOTE = text.split(':')[1].strip()
+                    break
+            if HOLDER_NOTE is not None:
+                break
+            
+        for text in texts:
+            if "holder’s mailing address:" in text.lower() or "holder's mailing address" in text.lower():
+                if len(text.split(':')) > 1:
+                    temps = text.split('\n')
+                    for temp in temps:
+                        if "holder’s mailing address:" in temp.lower() or "holder's mailing address" in temp.lower():
+                            HOLDER_ADDRESS = temp.split(':')[1].strip()
+                            break
+                else:
+                    HOLDER_ADDRESS = text.split(':')[1].strip()
+                    break
+                
+            if HOLDER_ADDRESS is not None:
+                break
+                
+                
+        
+        DATA.append([DATE1, LENDER, BORROWER1, BORROWER_ADDRESS, LOAN_NO, DATE2, ORIGINAL_AMOUNT, BORROWER2, ORIGINAL_LENDER, UNPAID_PRINCIPLE, EXTENDED_MATURITY,
+                    MODIFIED_ANNUAL, MODIFIED_PAYMENT, PRINCIPLE_INTEREST, COMPLETION_DATE, PROPERTY_ADDRESS, EXTENDED_MATURITY_NOTE, MODIFIED_MATURITY, OBLIGRATOR, OBLIGRATOR_ADDRESS, HOLDER_NOTE, HOLDER_ADDRESS])
+            
+        wbx = Workbook()
+        ws = wbx.active
+        for i in range(len(DATA)):
+            for j in range(len(DATA[i])):
+                ws.cell(row=i+1, column=j+1).value = DATA[i][j]
+                
+        try:
+            wbx.save('ExtractedData.xlsx')
+        except:
+            print("[!] Unable to save data, please close the excel file if open")
+        
+        print(f"""\nDATE: {DATE1}\nLender: {LENDER}\nBorrower: {BORROWER1}\nBorrower's Address: {BORROWER_ADDRESS}\nLoan No: {LOAN_NO}\nDate: {DATE2}\nOriginal Amount: {ORIGINAL_AMOUNT}\nBorrower: {BORROWER2}\nOriginal Lender: {ORIGINAL_LENDER}\nUnpaid Principal: {UNPAID_PRINCIPLE}\nExtented Maturity: {EXTENDED_MATURITY}\nModified annual interest rate: {MODIFIED_ANNUAL}\nModified payment terms: {MODIFIED_PAYMENT}\nPrincipal and interest: {PRINCIPLE_INTEREST}\nCompletion date: {COMPLETION_DATE}\nProperty address: {PROPERTY_ADDRESS}\nExtented maturity date of note: {EXTENDED_MATURITY_NOTE}\nModified maturity date: {MODIFIED_MATURITY}\nObligor: {OBLIGRATOR}\nObligor's mailing address: {OBLIGRATOR_ADDRESS}\nHolder of note and lien: {HOLDER_NOTE}\nHolder's mailing address: {HOLDER_ADDRESS}""")
+        
+    input("\n[+] Done! Press Enter to return...")
+    
+while True:
+    opt = int(input("+==================================================================+\n"
+                    "|           >> hidalgo.tx.publicsearch.us (OCR BOT-3) <<           |\n"
+                    "+==================================================================+\n"
+                    "|                                                                  |\n"
+                    "|                         SELECT OPTION                            |\n"
+                    "|                       '''''''''''''''''                          |\n"
+                    "|        1. START BOT                                              |\n"
+                    "|        2. EXIT BOT                                               |\n"
+                    "|                                                                  |\n"
+                    "+==================================================================+\n"
+                    "|          SELECT OPTION TO START THE BOT | EXAMPLE:   >>1         |\n"
+                    "+==================================================================+\n"
+                    ">>"))
+
+    if opt == 1:
+        HTPX()
+    elif opt == 2:
+        sys.exit()
+    else:
+        print("\n"
+              "Incorrect option selected. Try Again.\n")
+        time.sleep(2)
+    clear()
